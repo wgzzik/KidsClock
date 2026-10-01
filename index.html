@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Распорядок дня</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    background: #0d1117;
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== ЦИФРОВЫЕ ЧАСЫ СВЕРХУ ===== */
+  .digital-clock {
+    font-size: 44px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+    text-align: center;
+    padding: 14px 0 12px;
+    color: #e6edf3;
+    text-shadow: 0 0 20px rgba(88,166,255,0.35);
+  }
+
+  /* ===== ЦИФЕРБЛАТ ===== */
+  .clock-panel {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 55vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  #clockCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* ===== СПИСОК ДЕЛ ===== */
+  .schedule-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px 80px 14px;
+    min-height: 0;
+  }
+  .schedule-list::-webkit-scrollbar { width: 4px; }
+  .schedule-list::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+
+  .schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: #161b22;
+    transition: all 0.4s ease;
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+  .schedule-item.active {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .schedule-emoji {
+    font-size: 32px;
+    flex-shrink: 0;
+    width: 44px;
+    text-align: center;
+  }
+  .schedule-info { flex: 1; min-width: 0; }
+  .schedule-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .schedule-time {
+    font-size: 14px;
+    color: #7d8590;
+    font-variant-numeric: tabular-nums;
+    margin-top: 2px;
+  }
+  .schedule-item.active .schedule-time { color: #adbac7; }
+
+  /* ===== ОТЛАДКА ===== */
+  .debug-toggle-wrap {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    z-index: 101;
+  }
+  .debug-btn {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .debug-btn:active { background: #30363d; }
+  .debug-btn.active { background: #1f6feb; color: #fff; border-color: #1f6feb; }
+
+  .debug-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 12px 14px;
+    background: rgba(13,17,23,0.98);
+    border-top: 1px solid #30363d;
+    z-index: 100;
+    font-size: 13px;
+  }
+  .debug-panel.hidden { display: none; }
+
+  .debug-label { color: #7d8590; font-size: 12px; }
+
+  .debug-stepper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .stepper-btn {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .stepper-btn:active { background: #30363d; }
+  .stepper-value {
+    min-width: 40px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 15px;
+    color: #e6edf3;
+  }
+
+  /* ===== АДАПТАЦИЯ ПОД БОЛЬШИЕ ЭКРАНЫ ===== */
+  @media (min-width: 700px) and (orientation: landscape) {
+    body {
+      flex-direction: row;
+    }
+    .clock-panel {
+      flex: 0 0 55%;
+      max-height: none;
+      height: 100vh;
+      aspect-ratio: auto;
+    }
+    .right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 20px 24px 8px;
+      min-width: 0;
+    }
+    .digital-clock {
+      font-size: 56px;
+      padding: 12px 0 20px;
+      border-bottom: 1px solid #21262d;
+      margin-bottom: 16px;
+    }
+    .schedule-list {
+      padding: 0 0 8px 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="digital-clock" id="digitalClock">00:00:00</div>
+
+<div class="clock-panel">
+  <canvas id="clockCanvas"></canvas>
+</div>
+
+<div class="schedule-list" id="scheduleList"></div>
+
+<div class="debug-toggle-wrap">
+  <button class="debug-btn" id="debugToggleBtn" title="Показать/скрыть отладку">&#9881;&#65039;</button>
+</div>
+
+<div class="debug-panel hidden" id="debugPanel">
+  <button class="debug-btn active" id="modeReal">Реальное</button>
+  <button class="debug-btn" id="modeDebug">Отладочное</button>
+  <div class="debug-stepper">
+    <span class="debug-label">Ч</span>
+    <button class="stepper-btn" data-unit="h" data-dir="-1">&#9664;</button>
+    <span class="stepper-value" id="dbgH">07</span>
+    <button class="stepper-btn" data-unit="h" data-dir="1">&#9654;</button>
+  </div>
+  <div class="debug-stepper">
+    <span class="debug-label">М</span>
+    <button class="stepper-btn" data-unit="m" data-dir="-1">&#9664;</button>
+    <span class="stepper-value" id="dbgM">00</span>
+    <button class="stepper-btn" data-unit="m" data-dir="1">&#9654;</button>
+  </div>
+  <div class="debug-stepper">
+    <span class="debug-label">С</span>
+    <button class="stepper-btn" data-unit="s" data-dir="-1">&#9664;</button>
+    <span class="stepper-value" id="dbgS">00</span>
+    <button class="stepper-btn" data-unit="s" data-dir="1">&#9654;</button>
+  </div>
+</div>
+
+<script>
+const SCHEDULE = [
+  { start: "07:01", end: "07:10", title: "\u0423\u043c\u044b\u0432\u0430\u043d\u0438\u0435",       emoji: "\u{1F6BF}", color: "#2563eb" },
+  { start: "07:10", end: "07:15", title: "\u0417\u0430\u043b\u0438\u043f\u0430\u043d\u0438\u0435",      emoji: "\u{1F634}", color: "#6b7280" },
+  { start: "07:15", end: "07:40", title: "\u0417\u0430\u0432\u0442\u0440\u0430\u043a",        emoji: "\u{1F96A}", color: "#e67e22" },
+  { start: "07:40", end: "07:53", title: "\u041e\u0434\u0435\u0432\u0430\u043d\u0438\u0435",       emoji: "\u{1F455}", color: "#9b59b6" },
+  { start: "07:53", end: "07:59", title: "\u0412\u044b\u0445\u043e\u0434 \u0438\u0437 \u0434\u043e\u043c\u0430",  emoji: "\u{1F462}", color: "#2ecc71" },
+  { start: "18:30", end: "19:00", title: "Ужин",           emoji: "🍽️", color: "#f9a825" },
+  { start: "19:00", end: "19:25", title: "Умывание вечером", emoji: "\u{1F6BF}", color: "#3b82f6" },
+  { start: "19:25", end: "20:20", title: "Отход ко сну",    emoji: "🌙", color: "#4b5563" }
+];
+
+function parseTime(str) {
+  const [h, m] = String(str).split(":").map(Number);
+  return h * 60 + m;
+}
+
+const schedule = SCHEDULE.map(item => {
+  const start = parseTime(item.start);
+  let end = parseTime(item.end);
+  if (end <= start) end += 24 * 60;
+  return {
+    start,
+    end,
+    dur: end - start,
+    title: item.title,
+    emoji: item.emoji,
+    color: item.color
+  };
+});
+
+let mode = "real";
+let debugTime = { h: 7, m: 0, s: 0 };
+let debugOffset = { h: 7, m: 0, s: 0 };
+
+const canvas = document.getElementById("clockCanvas");
+const ctx = canvas.getContext("2d");
+const dpr = window.devicePixelRatio || 1;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+window.addEventListener("orientationchange", () => setTimeout(resizeCanvas, 100));
+
+function getCurrentTime() {
+  if (mode === "real") {
+    const now = new Date();
+    return { h: now.getHours(), m: now.getMinutes(), s: now.getSeconds(), ms: now.getMilliseconds() };
+  }
+  const now = new Date();
+  let total = now.getTime();
+  total += debugOffset.h * 3600000 + debugOffset.m * 60000 + debugOffset.s * 1000;
+  const d = new Date(total);
+  return { h: d.getHours(), m: d.getMinutes(), s: d.getSeconds(), ms: d.getMilliseconds() };
+}
+
+function isSectorActive(item, nowMin) {
+  if (item.end > item.start) {
+    return nowMin >= item.start && nowMin < item.end;
+  }
+  return nowMin >= item.start || nowMin < item.end;
+}
+
+function findIndices(nowMin) {
+  let cur = -1;
+  for (let i = 0; i < schedule.length; i++) {
+    if (isSectorActive(schedule[i], nowMin)) { cur = i; break; }
+  }
+  let prev = -1, next = -1;
+  if (cur !== -1) {
+    prev = (cur - 1 + schedule.length) % schedule.length;
+    next = (cur + 1) % schedule.length;
+  }
+  return { cur, prev, next };
+}
+
+function drawSector(item, alphaFill, alphaStroke, fontSize, glow) {
+  let parts = [];
+  let remaining = item.dur;
+  let cursor = item.start % 60;
+  while (remaining > 0) {
+    const spaceLeft = 60 - cursor;
+    const take = Math.min(spaceLeft, remaining);
+    parts.push({ start: cursor, end: cursor + take });
+    remaining -= take;
+    cursor = 0;
+  }
+  parts.forEach(part => {
+    const sa = (part.start / 60) * Math.PI * 2 - Math.PI / 2;
+    const ea = (part.end   / 60) * Math.PI * 2 - Math.PI / 2;
+    const sweep = ea - sa;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, R, sa, ea);
+    ctx.closePath();
+
+    const hex = v => Math.floor(v * 255).toString(16).padStart(2, "0");
+    ctx.fillStyle = item.color + hex(alphaFill);
+    ctx.fill();
+    ctx.strokeStyle = item.color + hex(alphaStroke);
+    ctx.lineWidth = glow ? 3.5 : 1.5;
+    if (glow) {
+      ctx.shadowColor = item.color;
+      ctx.shadowBlur = 18;
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    if (sweep > 0.05) {
+      const mid = sa + sweep / 2;
+      const er = R * 0.72;
+      const ex = cx + Math.cos(mid) * er;
+      const ey = cy + Math.sin(mid) * er;
+      ctx.save();
+      ctx.translate(ex, ey);
+      ctx.rotate(mid + Math.PI / 2);
+      ctx.font = fontSize + "px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(item.emoji, 0, 0);
+      ctx.restore();
+    }
+  });
+}
+
+var cx, cy, R;
+
+function drawClock() {
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  cx = w / 2;
+  cy = h / 2;
+  R  = Math.min(w, h) * 0.42;
+
+  const t = getCurrentTime();
+  const nowMin = t.h * 60 + t.m + t.s / 60;
+
+  // --- Фон-циферблат ---
+  ctx.beginPath();
+  ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#161b22";
+  ctx.fill();
+  ctx.strokeStyle = "#30363d";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // --- Сектора ---
+  const { cur, prev, next } = findIndices(nowMin);
+
+  if (prev !== -1 && prev !== cur) {
+    drawSector(schedule[prev], 0.20, 0.40, 24, false);
+  }
+  if (next !== -1 && next !== cur && next !== prev) {
+    drawSector(schedule[next], 0.20, 0.40, 24, false);
+  }
+  if (cur !== -1) {
+    drawSector(schedule[cur], 0.75, 1.0, 30, true);
+  }
+
+  // --- Деления ---
+  for (let i = 0; i < 60; i++) {
+    const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
+    const isMajor = i % 5 === 0;
+    const len = isMajor ? 12 : 5;
+    const x1 = cx + Math.cos(angle) * (R - len);
+    const y1 = cy + Math.sin(angle) * (R - len);
+    const x2 = cx + Math.cos(angle) * R;
+    const y2 = cy + Math.sin(angle) * R;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = isMajor ? "#586069" : "#30363d";
+    ctx.lineWidth = isMajor ? 2 : 1;
+    ctx.stroke();
+  }
+
+  // --- Числа ---
+  ctx.fillStyle = "#484f58";
+  ctx.font = "bold 16px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+    const tx = cx + Math.cos(angle) * (R - 32);
+    const ty = cy + Math.sin(angle) * (R - 32);
+    ctx.fillText(i * 5, tx, ty);
+  }
+
+  // --- Стрелки ---
+  const totalMinutes = t.m + t.s / 60;
+  const mAngle = (totalMinutes / 60) * Math.PI * 2 - Math.PI / 2;
+  const totalHours12 = ((t.h % 12) * 60) + t.m + t.s / 60;
+  const hAngle = (totalHours12 / 720) * Math.PI * 2 - Math.PI / 2;
+  const totalSeconds = t.s + t.ms / 1000;
+  const sAngle = (totalSeconds / 60) * Math.PI * 2 - Math.PI / 2;
+
+  // Часовая
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(hAngle) * R * 0.45, cy + Math.sin(hAngle) * R * 0.45);
+  ctx.strokeStyle = "rgba(180,190,200,0.55)";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // Минутная
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(mAngle) * R * 0.78, cy + Math.sin(mAngle) * R * 0.78);
+  ctx.strokeStyle = "#2dd4bf";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.shadowColor = "#2dd4bf";
+  ctx.shadowBlur = 14;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Секундная
+  ctx.beginPath();
+  ctx.moveTo(cx - Math.cos(sAngle) * R * 0.15, cy - Math.sin(sAngle) * R * 0.15);
+  ctx.lineTo(cx + Math.cos(sAngle) * R * 0.85, cy + Math.sin(sAngle) * R * 0.85);
+  ctx.strokeStyle = "#f472b6";
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // Центр
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+  ctx.fillStyle = "#2dd4bf";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+  ctx.fillStyle = "#0d1117";
+  ctx.fill();
+}
+
+// ===================== ПРАВАЯ ПАНЕЛЬ =====================
+function buildScheduleList() {
+  const list = document.getElementById("scheduleList");
+  list.innerHTML = "";
+  schedule.forEach((item, i) => {
+    const div = document.createElement("div");
+    div.className = "schedule-item";
+    div.dataset.idx = i;
+    div.style.borderLeft = "5px solid " + item.color;
+    div.innerHTML = '<div class="schedule-emoji">' + item.emoji + '</div>' +
+      '<div class="schedule-info">' +
+      '<div class="schedule-title">' + item.title + '</div>' +
+      '<div class="schedule-time">' + formatMin(item.start) + ' \u2014 ' + formatMin(item.end) + '</div>' +
+      '</div>';
+    list.appendChild(div);
+  });
+}
+
+function formatMin(min) {
+  const h = Math.floor(min / 60) % 24;
+  const m = min % 60;
+  return String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0");
+}
+
+function updateScheduleHighlight(t) {
+  const nowMin = t.h * 60 + t.m + t.s / 60;
+  const items = document.querySelectorAll(".schedule-item");
+  items.forEach((el, i) => {
+    const item = schedule[i];
+    const active = isSectorActive(item, nowMin);
+    el.classList.toggle("active", active);
+    if (active) {
+      el.style.borderColor = item.color;
+      el.style.background = item.color + "1a";
+      // Автоскролл к активному элементу
+      if (!el.dataset.scrolled) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.dataset.scrolled = "1";
+      }
+    } else {
+      el.style.borderColor = "transparent";
+      el.style.background = "#161b22";
+      el.dataset.scrolled = "";
+    }
+  });
+}
+
+function updateDigital(t) {
+  document.getElementById("digitalClock").textContent =
+    String(t.h).padStart(2,"0") + ":" +
+    String(t.m).padStart(2,"0") + ":" +
+    String(t.s).padStart(2,"0");
+}
+
+// ===================== ОТЛАДКА =====================
+const debugPanel    = document.getElementById("debugPanel");
+const debugToggleBtn = document.getElementById("debugToggleBtn");
+const modeRealBtn   = document.getElementById("modeReal");
+const modeDebugBtn  = document.getElementById("modeDebug");
+
+debugToggleBtn.addEventListener("click", () => {
+  debugPanel.classList.toggle("hidden");
+});
+
+modeRealBtn.addEventListener("click", () => {
+  mode = "real";
+  modeRealBtn.classList.add("active");
+  modeDebugBtn.classList.remove("active");
+});
+
+modeDebugBtn.addEventListener("click", () => {
+  mode = "debug";
+  modeRealBtn.classList.remove("active");
+  modeDebugBtn.classList.add("active");
+  const now = new Date();
+  debugOffset.h = debugTime.h - now.getHours();
+  debugOffset.m = debugTime.m - now.getMinutes();
+  debugOffset.s = debugTime.s - now.getSeconds();
+});
+
+document.querySelectorAll(".stepper-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const unit = btn.dataset.unit;
+    const dir  = parseInt(btn.dataset.dir);
+    if (unit === "h") debugTime.h = (debugTime.h + dir + 24) % 24;
+    if (unit === "m") debugTime.m = (debugTime.m + dir + 60) % 60;
+    if (unit === "s") debugTime.s = (debugTime.s + dir + 60) % 60;
+    if (mode === "debug") {
+      const now = new Date();
+      debugOffset.h = debugTime.h - now.getHours();
+      debugOffset.m = debugTime.m - now.getMinutes();
+      debugOffset.s = debugTime.s - now.getSeconds();
+    }
+    updateDebugDisplay();
+  });
+});
+
+function updateDebugDisplay() {
+  document.getElementById("dbgH").textContent = String(debugTime.h).padStart(2,"0");
+  document.getElementById("dbgM").textContent = String(debugTime.m).padStart(2,"0");
+  document.getElementById("dbgS").textContent = String(debugTime.s).padStart(2,"0");
+}
+
+// ===================== ГЛАВНЫЙ ЦИКЛ =====================
+buildScheduleList();
+
+function tick() {
+  const t = getCurrentTime();
+  if (mode === "debug") {
+    debugTime.h = t.h; debugTime.m = t.m; debugTime.s = t.s;
+    updateDebugDisplay();
+  }
+  drawClock();
+  updateDigital(t);
+  updateScheduleHighlight(t);
+  requestAnimationFrame(tick);
+}
+tick();
+</script>
+</body>
+</html>
