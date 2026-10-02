@@ -393,11 +393,16 @@ function drawClock() {
   const { cur, prev, next } = findIndices(nowMin);
 
   if (prev !== -1 && prev !== cur) {
-    drawSector(schedule[prev], 0.20, 0.40, 24, false);
+    const prevEndMod = schedule[prev].end % 1440;
+    const sincePrev = ((nowMin - prevEndMod) + 1440) % 1440;
+    if (sincePrev < 10) drawSector(schedule[prev], 0.20, 0.40, 24, false);
   }
   if (next !== -1 && next !== cur && next !== prev) {
-    drawSector(schedule[next], 0.20, 0.40, 24, false);
+    const nextStartMod = schedule[next].start % 1440;
+    const untilNext = ((nextStartMod - nowMin) + 1440) % 1440;
+    if (untilNext < 10) drawSector(schedule[next], 0.20, 0.40, 24, false);
   }
+
   if (cur !== -1) {
     drawSector(schedule[cur], 0.75, 1.0, 30, true);
   }
