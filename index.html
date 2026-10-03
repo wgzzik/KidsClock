@@ -236,19 +236,30 @@
 </div>
 
 <script>
-const SCHEDULE = [
-  { start: "07:01", end: "07:10", title: "Умывание",       emoji: "🚿", color: "#2563eb" },
-  { start: "07:10", end: "07:12", title: "Залипание",      emoji: "😴", color: "#6b7280" },
-  { start: "07:12", end: "07:35", title: "Завтрак",        emoji: "🥪", color: "#e67e22" },
-  { start: "07:35", end: "07:40", title: "Заплетание",        emoji: "🎀", color: "#FFC0CB" },
-  { start: "07:40", end: "07:53", title: "Одевание",       emoji: "👕", color: "#9b59b6" },
-  { start: "07:53", end: "07:59", title: "Выход из дома",  emoji: "👢", color: "#2ecc71" },
-  { start: "18:50", end: "19:30", title: "Ужин",           emoji: "🍽️", color: "#f9a825" },
-  { start: "19:30", end: "19:50", title: "Собраться на завтра",           emoji: "🛍️", color: "#6b7280" },
-  { start: "19:50", end: "20:30", title: "Умывание вечером", emoji: "🚿", color: "#3b82f6" },
-  { start: "20:30", end: "20:50", title: "Чтение книжек",    emoji: "📖", color: "#4b5563" },
-  { start: "20:50", end: "21:20", title: "Отход ко сну",    emoji: "🌙", color: "#4b5563" }
+//const SCHEDULE = [
+//  { start: "07:01", end: "07:10", title: "Умывание",       emoji: "🚿", color: "#2563eb" },
+//  { start: "07:10", end: "07:12", title: "Залипание",      emoji: "😴", color: "#6b7280" },
+//  { start: "07:12", end: "07:35", title: "Завтрак",        emoji: "🥪", color: "#e67e22" },
+//  { start: "07:35", end: "07:40", title: "Заплетание",        emoji: "🎀", color: "#FFC0CB" },
+//  { start: "07:40", end: "07:53", title: "Одевание",       emoji: "👕", color: "#9b59b6" },
+//  { start: "07:53", end: "07:59", title: "Выход из дома",  emoji: "👢", color: "#2ecc71" },
+//  { start: "18:50", end: "19:30", title: "Ужин",           emoji: "🍽️", color: "#f9a825" },
+//  { start: "19:30", end: "19:50", title: "Собраться на завтра",           emoji: "🛍️", color: "#6b7280" },
+//  { start: "19:50", end: "20:30", title: "Умывание вечером", emoji: "🚿", color: "#3b82f6" },
+//  { start: "20:30", end: "20:50", title: "Чтение книжек",    emoji: "📖", color: "#4b5563" },
+//  { start: "20:50", end: "21:20", title: "Отход ко сну",    emoji: "🌙", color: "#4b5563" }
+//];
+
+
+ const SCHEDULE = [
+  { start: "09:00", end: "09:10", title: "Умывание",       emoji: "🚿", color: "#2563eb" },
+  { start: "09:10", end: "09:20", title: "Залипание",      emoji: "😴", color: "#6b7280" },
+  { start: "09:20", end: "09:50", title: "Завтрак",        emoji: "🥪", color: "#e67e22" },
+  { start: "09:50", end: "10:00", title: "Заплетание",        emoji: "🎀", color: "#FFC0CB" },
+  { start: "10:00", end: "10:20", title: "Одевание",       emoji: "👕", color: "#9b59b6" },
+  { start: "10:20", end: "10:30", title: "Выход из дома",  emoji: "👢", color: "#2ecc71" },
 ];
+ 
 
 function parseTime(str) {
   const [h, m] = String(str).split(":").map(Number);
